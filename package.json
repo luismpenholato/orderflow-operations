@@ -20,7 +20,7 @@
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "typecheck": "npm run typecheck -w @orderflow/contracts && npm run typecheck -w @orderflow/api && npm run typecheck -w @orderflow/erp-mock && npm run typecheck -w @orderflow/web",
+    "typecheck": "npm run build -w @orderflow/contracts && npm run typecheck -w @orderflow/api && npm run typecheck -w @orderflow/erp-mock && npm run typecheck -w @orderflow/web",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
