@@ -1,0 +1,14 @@
+# Default owners for all files
+* @luismpenholato
+
+# CI/CD and deployment
+/.github/ @luismpenholato
+/deploy/ @luismpenholato
+/scripts/build-release.sh @luismpenholato
+
+# Documentation
+/docs/ @luismpenholato
+/README.md @luismpenholato
+
+# Shared contracts (changes affect all workspaces)
+/packages/contracts/ @luismpenholato

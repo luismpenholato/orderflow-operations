@@ -1,0 +1,26 @@
+[Unit]
+Description=OrderFlow ERP Mock Service
+Documentation=https://github.com/luismpenholato/orderflow-operations
+After=network.target postgresql.service orderflow-api.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=orderflow
+Group=orderflow
+WorkingDirectory=/opt/orderflow/current/apps/erp-mock
+EnvironmentFile=/opt/orderflow/.env
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=orderflow-erp-mock
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/orderflow /var/log/orderflow
+
+[Install]
+WantedBy=multi-user.target

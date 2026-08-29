@@ -1,0 +1,67 @@
+name: Deploy VPS
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to deploy (e.g. 0.1.0)"
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to Production VPS
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ inputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid version format: $VERSION (expected X.Y.Z)"
+            exit 1
+          fi
+          echo "Deploying version: $VERSION"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            VERSION="${{ inputs.version }}"
+            APP_ROOT="/opt/orderflow"
+            ARCHIVE="orderflow-operations-v${VERSION}.tar.gz"
+            REPO="luismpenholato/orderflow-operations"
+
+            curl -fsSL \
+              "https://github.com/${REPO}/releases/download/v${VERSION}/${ARCHIVE}" \
+              -o "/tmp/${ARCHIVE}"
+            curl -fsSL \
+              "https://github.com/${REPO}/releases/download/v${VERSION}/${ARCHIVE}.sha256" \
+              -o "/tmp/${ARCHIVE}.sha256"
+            cd /tmp && sha256sum -c "${ARCHIVE}.sha256"
+
+            RELEASE_DIR="${APP_ROOT}/orderflow-operations-v${VERSION}"
+            mkdir -p "${RELEASE_DIR}"
+            tar -xzf "/tmp/${ARCHIVE}" -C "${RELEASE_DIR}" --strip-components=1
+            chown -R orderflow:orderflow "${RELEASE_DIR}"
+
+            ln -sfn "${RELEASE_DIR}" "${APP_ROOT}/current"
+
+            sudo -u orderflow bash -c "
+              cd ${APP_ROOT}/current
+              set -a && source ${APP_ROOT}/.env && set +a
+              npm run db:migrate
+            "
+
+            sudo systemctl restart orderflow-api orderflow-erp-mock
+            sleep 3
+            curl -sf http://localhost:3000/health
+            echo "Deploy v${VERSION} complete"

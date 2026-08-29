@@ -1,0 +1,85 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.meta {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.orderNumber {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.metaRow {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+.metaRow strong {
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.auditEntry {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.auditEntry:last-child {
+  border-bottom: none;
+}
+
+.auditAction {
+  font-weight: 600;
+}
+
+.auditMeta {
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+}
+
+.emptySection {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  padding: 1rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}

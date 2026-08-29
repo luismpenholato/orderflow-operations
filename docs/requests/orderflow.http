@@ -1,0 +1,297 @@
+### OrderFlow Operations — HTTP Request Examples
+### Use with VS Code REST Client, JetBrains HTTP Client, or similar.
+### Base URL assumes local development defaults.
+
+@baseUrl = http://localhost:3000
+@erpUrl = http://localhost:3001
+
+### Variables — replace after login or from seed data
+@customerId = {{customerId}}
+@productId = {{productId}}
+@orderId = {{orderId}}
+@outboxId = {{outboxId}}
+
+###############################################################################
+# Health
+###############################################################################
+
+### Liveness
+GET {{baseUrl}}/health
+
+### Readiness (checks database)
+GET {{baseUrl}}/ready
+
+###############################################################################
+# Auth
+###############################################################################
+
+### Login — SALES user (seed data)
+# @name loginSales
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "sales@demo.orderflow.local",
+  "password": "Demo@12345"
+}
+
+### Login — MANAGER user
+# @name loginManager
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "manager@demo.orderflow.local",
+  "password": "Demo@12345"
+}
+
+### Login — FINANCE user
+# @name loginFinance
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "finance@demo.orderflow.local",
+  "password": "Demo@12345"
+}
+
+### Current user (requires session cookie from login)
+GET {{baseUrl}}/api/auth/me
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+
+###############################################################################
+# Customers
+###############################################################################
+
+### List customers
+GET {{baseUrl}}/api/customers?page=1&limit=20&sortBy=name&sortOrder=asc
+
+### Search customers
+GET {{baseUrl}}/api/customers?search=northwind&active=true
+
+### Get customer by ID
+GET {{baseUrl}}/api/customers/{{customerId}}
+
+### Create customer
+POST {{baseUrl}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Acme Corporation",
+  "email": "orders@acme-demo.local",
+  "phone": "+1-555-0199",
+  "documentNumber": "ACME-001",
+  "address": "123 Demo Street",
+  "active": true
+}
+
+### Update customer
+PUT {{baseUrl}}/api/customers/{{customerId}}
+Content-Type: application/json
+
+{
+  "phone": "+1-555-0200",
+  "active": true
+}
+
+###############################################################################
+# Products
+###############################################################################
+
+### List products
+GET {{baseUrl}}/api/products?page=1&limit=20&sortBy=sku&sortOrder=asc
+
+### Filter by type
+GET {{baseUrl}}/api/products?type=SIMPLE&active=true
+
+### Get product by ID
+GET {{baseUrl}}/api/products/{{productId}}
+
+### Create simple product
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "sku": "DEMO-001",
+  "name": "Demo Product",
+  "type": "SIMPLE",
+  "unitPrice": 49.99,
+  "active": true
+}
+
+### Create kit product
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "sku": "DEMO-KIT",
+  "name": "Demo Kit Bundle",
+  "type": "KIT",
+  "unitPrice": 99.99,
+  "active": true
+}
+
+### Update product
+PUT {{baseUrl}}/api/products/{{productId}}
+Content-Type: application/json
+
+{
+  "unitPrice": 54.99
+}
+
+### Add kit components
+POST {{baseUrl}}/api/products/{{productId}}/components
+Content-Type: application/json
+
+{
+  "components": [
+    {
+      "componentProductId": "{{productId}}",
+      "quantity": 2
+    }
+  ]
+}
+
+###############################################################################
+# Inventory
+###############################################################################
+
+### List inventory balances
+GET {{baseUrl}}/api/inventory?page=1&limit=20&sortBy=productSku&sortOrder=asc
+
+### Low stock filter
+GET {{baseUrl}}/api/inventory?lowStockThreshold=10
+
+### Get inventory for product
+GET {{baseUrl}}/api/inventory/{{productId}}
+
+### Adjust inventory (manager only)
+POST {{baseUrl}}/api/inventory/{{productId}}/adjustments
+Content-Type: application/json
+
+{
+  "quantityDelta": 50,
+  "reason": "Stock receipt from supplier"
+}
+
+### Negative adjustment
+POST {{baseUrl}}/api/inventory/{{productId}}/adjustments
+Content-Type: application/json
+
+{
+  "quantityDelta": -5,
+  "reason": "Damaged goods write-off"
+}
+
+###############################################################################
+# Orders
+###############################################################################
+
+### List orders
+GET {{baseUrl}}/api/orders?page=1&limit=20&sortBy=createdAt&sortOrder=desc
+
+### Filter by status
+GET {{baseUrl}}/api/orders?status=SYNC_PENDING
+
+### Get order by ID
+GET {{baseUrl}}/api/orders/{{orderId}}
+
+### Create order — simple products
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+X-Correlation-ID: {{$guid}}
+
+{
+  "customerId": "{{customerId}}",
+  "type": "SALE",
+  "items": [
+    {
+      "productId": "{{productId}}",
+      "quantity": 2
+    }
+  ],
+  "notes": "Demo order via HTTP client"
+}
+
+### Create order — kit product
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "customerId": "{{customerId}}",
+  "type": "SALE",
+  "items": [
+    {
+      "productId": "{{productId}}",
+      "quantity": 1,
+      "unitPrice": 79.99
+    }
+  ]
+}
+
+### Cancel order (manager only)
+POST {{baseUrl}}/api/orders/{{orderId}}/cancel
+
+###############################################################################
+# Dashboard
+###############################################################################
+
+### Dashboard summary (manager or finance)
+GET {{baseUrl}}/api/dashboard/summary
+
+###############################################################################
+# Integration
+###############################################################################
+
+### List outbox messages
+GET {{baseUrl}}/api/integrations/outbox?page=1&limit=20
+
+### Filter outbox by status
+GET {{baseUrl}}/api/integrations/outbox?status=FAILED
+
+### List sync attempts
+GET {{baseUrl}}/api/integrations/attempts?page=1&limit=20
+
+### Filter attempts by outbox message
+GET {{baseUrl}}/api/integrations/attempts?outboxMessageId={{outboxId}}
+
+### Retry failed outbox message (manager only)
+POST {{baseUrl}}/api/integrations/outbox/{{outboxId}}/retry
+
+###############################################################################
+# ERP Mock (direct)
+###############################################################################
+
+### ERP health
+GET {{erpUrl}}/health
+
+### Send order to ERP mock directly
+POST {{erpUrl}}/api/orders
+Content-Type: application/json
+Idempotency-Key: demo-erp-{{$guid}}
+X-Correlation-ID: {{$guid}}
+
+{
+  "orderId": "00000000-0000-4000-8000-000000000001",
+  "orderNumber": "ORD-000099",
+  "customerId": "00000000-0000-4000-8000-000000000002",
+  "customerName": "Demo Customer",
+  "type": "SALE",
+  "totalAmount": 59.98,
+  "items": [
+    {
+      "productId": "00000000-0000-4000-8000-000000000003",
+      "sku": "WIDGET-A",
+      "name": "Standard Widget A",
+      "quantity": 2,
+      "unitPrice": 29.99
+    }
+  ]
+}
+
+### List ERP received orders
+GET {{erpUrl}}/api/orders

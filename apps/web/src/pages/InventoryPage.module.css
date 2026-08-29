@@ -1,0 +1,32 @@
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.lowStock {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.formGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.productInfo {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  padding: 0.75rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}

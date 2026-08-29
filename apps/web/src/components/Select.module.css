@@ -1,0 +1,32 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.select {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.select:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.selectError {
+  border-color: var(--color-danger);
+}
+
+.error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+}

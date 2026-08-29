@@ -1,0 +1,27 @@
+[Unit]
+Description=OrderFlow Operations API
+Documentation=https://github.com/luismpenholato/orderflow-operations
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=orderflow
+Group=orderflow
+WorkingDirectory=/opt/orderflow/current/apps/api
+EnvironmentFile=/opt/orderflow/.env
+ExecStart=/usr/bin/node dist/server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=orderflow-api
+
+# Security hardening (adjust if needed)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/orderflow /var/log/orderflow
+
+[Install]
+WantedBy=multi-user.target
