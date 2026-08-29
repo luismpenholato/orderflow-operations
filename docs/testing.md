@@ -78,20 +78,20 @@ Setup: `apps/web/src/test/setup.ts`
 
 ### API Unit Tests
 
-| File | Coverage Area |
-| --- | --- |
-| `inventory-calculations.test.ts` | Available quantity, kit expansion, consolidation |
-| `order-status.test.ts` | Status transitions and cancellability |
-| `get-dashboard-summary.use-case.test.ts` | Dashboard aggregation logic |
+| File                                     | Coverage Area                                    |
+| ---------------------------------------- | ------------------------------------------------ |
+| `inventory-calculations.test.ts`         | Available quantity, kit expansion, consolidation |
+| `order-status.test.ts`                   | Status transitions and cancellability            |
+| `get-dashboard-summary.use-case.test.ts` | Dashboard aggregation logic                      |
 
 ### Integration Tests (15 scenarios)
 
-| File | Scenarios |
-| --- | --- |
-| `orders.integration.test.ts` | Create/reserve, negative stock, kit reservation, cancel, double-cancel guard |
-| `concurrency.integration.test.ts` | Concurrent reservation for last unit |
-| `outbox.integration.test.ts` | Atomic outbox, ERP sync, idempotent replay, retry after failure |
-| `auth.integration.test.ts` | Login, RBAC enforcement |
+| File                              | Scenarios                                                                    |
+| --------------------------------- | ---------------------------------------------------------------------------- |
+| `orders.integration.test.ts`      | Create/reserve, negative stock, kit reservation, cancel, double-cancel guard |
+| `concurrency.integration.test.ts` | Concurrent reservation for last unit                                         |
+| `outbox.integration.test.ts`      | Atomic outbox, ERP sync, idempotent replay, retry after failure              |
+| `auth.integration.test.ts`        | Login, RBAC enforcement                                                      |
 
 ## Running a Single Test File
 
