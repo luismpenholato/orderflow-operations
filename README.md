@@ -1,7 +1,6 @@
 # OrderFlow Operations
 
 [![CI](https://github.com/luismpenholato/orderflow-operations/actions/workflows/ci.yml/badge.svg)](https://github.com/luismpenholato/orderflow-operations/actions/workflows/ci.yml)
-[![Release](https://github.com/luismpenholato/orderflow-operations/actions/workflows/release.yml/badge.svg)](https://github.com/luismpenholato/orderflow-operations/actions/workflows/release.yml)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -13,28 +12,9 @@ Production-like commercial operations MVP for order management, inventory reserv
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Project Status](#project-status)
-3. [Features](#features)
-4. [Architecture Overview](#architecture-overview)
-5. [Tech Stack](#tech-stack)
-6. [Prerequisites](#prerequisites)
-7. [Quick Start](#quick-start)
-8. [Project Structure](#project-structure)
-9. [Configuration](#configuration)
-10. [Database Setup](#database-setup)
-11. [Authentication & Authorization](#authentication--authorization)
-12. [API Overview](#api-overview)
-13. [Inventory & Reservations](#inventory--reservations)
-14. [ERP Synchronization](#erp-synchronization)
-15. [Frontend Application](#frontend-application)
-16. [Testing](#testing)
-17. [Building](#building)
-18. [Deployment](#deployment)
-19. [CI/CD](#cicd)
-20. [Contributing](#contributing)
-21. [Security](#security)
-22. [License & Acknowledgments](#license--acknowledgments)
+[Quick start](#quick-start) · [Features](#features) · [Architecture](#architecture-overview) · [Configuration](#configuration) · [API](#api-overview) · [Testing](#testing) · [Deployment](#deployment)
+
+Start with [Project Status](#project-status) for limitations. Detailed guides cover [inventory reservations](docs/inventory-reservation.md), [ERP synchronization](docs/erp-synchronization.md), and [architecture decisions](docs/decisions/).
 
 ---
 
@@ -69,7 +49,7 @@ Known limitations at v0.1.0:
 
 ## Features
 
-- **Customer & product catalog** — CRUD with pagination, search, and role-based access
+- **Customer & product catalog** — Create, list, view and update records with pagination, search, and role-based access
 - **Kit products** — Bundle products composed of simple components with quantity multipliers
 - **Inventory management** — On-hand, reserved, and available quantities with manual adjustments
 - **Order lifecycle** — Create orders with stock reservation, pending-stock fallback, and cancellation
@@ -135,13 +115,16 @@ See [docs/architecture.md](docs/architecture.md) for module boundaries, data flo
 ## Prerequisites
 
 - **Node.js** >= 24.0.0 (see `.nvmrc`)
-- **npm** >= 10 (ships with Node 24)
-- **Docker** (recommended) or a local PostgreSQL 16 instance
+- **npm** included with Node.js 24
+- **Docker with Compose v2** for the local database; Docker is also required by the integration test suite
+- A local PostgreSQL 16 instance can replace Compose for development, but not the Testcontainers-based tests
 - **Git**
 
 ---
 
 ## Quick Start
+
+The following commands use Bash, Git Bash or a POSIX-compatible shell. All commands run from the repository root.
 
 ```bash
 # Clone the repository
@@ -151,8 +134,14 @@ cd orderflow-operations
 # Install dependencies
 npm ci
 
-# Start PostgreSQL
-docker compose up -d
+# Compile the shared package before starting its consumers
+npm run build -w @orderflow/contracts
+
+# Start PostgreSQL and wait for its health check
+docker compose up -d --wait
+
+# Required by migration and seed scripts; use only for local development
+export DATABASE_URL="postgresql://orderflow:orderflow_dev@localhost:5432/orderflow"
 
 # Run migrations and seed demo data
 npm run db:migrate
@@ -161,6 +150,16 @@ npm run db:seed
 # Start API, web, and ERP mock concurrently
 npm run dev
 ```
+
+**PowerShell:** use the same commands, replacing the `export` line with:
+
+```powershell
+$env:DATABASE_URL = "postgresql://orderflow:orderflow_dev@localhost:5432/orderflow"
+```
+
+Keep that variable in the terminal running migrations, seeds and the applications. The migration and seed scripts do not load a root `.env` automatically.
+
+If you edit shared contracts during development, run `npm run dev -w @orderflow/contracts` in another terminal to keep their compiled output up to date.
 
 | Service    | URL                          |
 | ---------- | ---------------------------- |
@@ -176,6 +175,8 @@ npm run dev
 | `sales@demo.orderflow.local`   | `Demo@12345` | SALES   |
 | `manager@demo.orderflow.local` | `Demo@12345` | MANAGER |
 | `finance@demo.orderflow.local` | `Demo@12345` | FINANCE |
+
+Try the workflow as **MANAGER**: inspect inventory, create an order with available stock, then open its details and the integration monitor to follow ERP synchronization. **SALES** starts on Orders; **FINANCE** has read access to Orders and Dashboard.
 
 ---
 
@@ -214,7 +215,9 @@ orderflow-operations/
 
 ## Configuration
 
-Environment variables are loaded via `dotenv`. Copy `deploy/.env.example` for a reference of all supported settings.
+Export environment variables in the shell before starting the processes. The API and ERP mock also use `dotenv`, which reads `.env` from each process's working directory; npm workspace scripts run from their package directories.
+
+Use the root [`.env.example`](.env.example) and [`deploy/.env.example`](deploy/.env.example) as references for local and deployment settings. Do not overwrite an existing environment file or commit secrets.
 
 | Variable                  | Default                                                         | Description                  |
 | ------------------------- | --------------------------------------------------------------- | ---------------------------- |
@@ -229,11 +232,20 @@ Environment variables are loaded via `dotenv`. Copy `deploy/.env.example` for a 
 | `ERP_MOCK_PORT`           | `3001`                                                          | ERP mock listen port         |
 | `ERP_MOCK_FAILURE_RATE`   | `0`                                                             | Simulated failure rate (0–1) |
 
+Additional settings in the [API configuration](apps/api/src/config.ts):
+
+- `JWT_SECRET` is required when `NODE_ENV=production`; the development fallback is not used in that mode.
+- `COOKIE_SECURE=true` is needed when serving authentication cookies over HTTPS in a shared deployment.
+- `ERP_REQUEST_TIMEOUT_MS` defaults to `10000`; it bounds each ERP HTTP request.
+- `OUTBOX_BATCH_SIZE` defaults to `10`.
+
 ---
 
 ## Database Setup
 
 PostgreSQL is provided via Docker Compose for local development:
+
+Set `DATABASE_URL` first as shown in [Quick Start](#quick-start).
 
 ```bash
 docker compose up -d
@@ -247,7 +259,7 @@ Migrations are tracked in the `schema_migrations` table. The seed script creates
 
 ## Authentication & Authorization
 
-Authentication uses email/password login with JWT stored in an HTTP-only cookie (`token`). All `/api/*` routes (except `/api/auth/login`) require a valid session.
+Authentication uses email/password login with JWT stored in an HTTP-only cookie (`orderflow_token`). Business routes and `/api/auth/me` require a valid session. Login is public; logout clears the cookie without requiring an authenticated request.
 
 | Role        | Capabilities                                                              |
 | ----------- | ------------------------------------------------------------------------- |
@@ -263,21 +275,28 @@ Login is rate-limited (10 attempts per 15 minutes by default).
 
 Base URL: `http://localhost:3000`
 
-| Method   | Path                     | Auth             | Description                      |
-| -------- | ------------------------ | ---------------- | -------------------------------- |
-| GET      | `/health`                | No               | Liveness probe                   |
-| GET      | `/ready`                 | No               | Readiness probe (checks DB)      |
-| POST     | `/api/auth/login`        | No               | Authenticate                     |
-| POST     | `/api/auth/logout`       | Cookie           | Clear session                    |
-| GET      | `/api/auth/me`           | Cookie           | Current user                     |
-| CRUD     | `/api/customers`         | SALES, MANAGER   | Customer management              |
-| CRUD     | `/api/products`          | SALES, MANAGER   | Product catalog                  |
-| GET/POST | `/api/inventory`         | MANAGER          | Inventory balances & adjustments |
-| CRUD     | `/api/orders`            | Role-based       | Order lifecycle                  |
-| GET/POST | `/api/integrations`      | MANAGER          | Outbox & sync attempts           |
-| GET      | `/api/dashboard/summary` | MANAGER, FINANCE | Operational summary              |
+| Method       | Path                                                     | Auth                    | Description                   |
+| ------------ | -------------------------------------------------------- | ----------------------- | ----------------------------- |
+| GET          | `/health`                                                | No                      | Liveness probe                |
+| GET          | `/ready`                                                 | No                      | Readiness probe (checks DB)   |
+| POST         | `/api/auth/login`                                        | No                      | Authenticate                  |
+| POST         | `/api/auth/logout`                                       | No                      | Clear session cookie          |
+| GET          | `/api/auth/me`                                           | Cookie                  | Current user                  |
+| GET/POST/PUT | `/api/customers[/:id]`                                   | SALES, MANAGER          | List, create, view and update |
+| GET/POST/PUT | `/api/products[/:id]`                                    | SALES, MANAGER          | List, create, view and update |
+| POST         | `/api/products/:id/components`                           | SALES, MANAGER          | Configure kit components      |
+| GET          | `/api/inventory[/:productId]`                            | MANAGER                 | Inventory balances            |
+| POST         | `/api/inventory/:productId/adjustments`                  | MANAGER                 | Adjust stock                  |
+| GET          | `/api/orders[/:id]`                                      | SALES, MANAGER, FINANCE | List and view orders          |
+| POST         | `/api/orders`                                            | SALES, MANAGER          | Create an order               |
+| POST         | `/api/orders/:id/cancel`                                 | MANAGER                 | Cancel an order               |
+| GET          | `/api/integrations/outbox`, `/api/integrations/attempts` | MANAGER                 | Monitor synchronization       |
+| POST         | `/api/integrations/outbox/:id/retry`                     | MANAGER                 | Retry an outbox message       |
+| GET          | `/api/dashboard/summary`                                 | MANAGER, FINANCE        | Operational summary           |
 
 HTTP request examples: [docs/requests/orderflow.http](docs/requests/orderflow.http)
+
+Square brackets in this summary indicate list/detail variants, not literal URL characters. The catalog has no DELETE endpoint; orders support creation and cancellation, not arbitrary updates.
 
 ---
 
@@ -291,7 +310,7 @@ See [docs/inventory-reservation.md](docs/inventory-reservation.md).
 
 ## ERP Synchronization
 
-Successful order creation enqueues an `ORDER_CREATED` outbox message. The in-process outbox worker polls pending messages, POSTs to the ERP mock with idempotency keys, records sync attempts, and transitions order status to `SYNCED` or `SYNC_FAILED`.
+Orders with a successful stock reservation enqueue an `ORDER_CREATED` outbox message in the same transaction. Orders in `PENDING_STOCK` do not enqueue that synchronization message. The in-process outbox worker polls pending messages, POSTs to the ERP mock with a stable idempotency key, records sync attempts, and transitions order status to `SYNCED` or `SYNC_FAILED`.
 
 See [docs/erp-synchronization.md](docs/erp-synchronization.md).
 
@@ -320,10 +339,13 @@ Routes:
 ## Testing
 
 ```bash
-npm run test              # Unit tests (API + web + contracts)
-npm run test:integration  # Integration tests (requires PostgreSQL)
+npm run test:unit         # API domain/application and frontend tests
+npm run test:integration  # Isolated PostgreSQL via Testcontainers; requires Docker
+npm test                 # Both suites above
 npm run validate          # Full pipeline: format, lint, typecheck, test, build
 ```
+
+The integration setup starts its own PostgreSQL container and applies migrations. It does not reuse the development database selected by `DATABASE_URL`.
 
 See [docs/testing.md](docs/testing.md) for strategy and coverage details.
 
@@ -342,8 +364,10 @@ Production start:
 ```bash
 npm run start -w @orderflow/api
 npm run start -w @orderflow/erp-mock
-# Serve apps/web/dist via nginx or vite preview
+# Serve apps/web/dist through nginx for deployment
 ```
+
+Run the API and ERP mock as separate processes. Vite preview is for inspecting a build locally, not the documented VPS serving setup.
 
 Release artifacts: `scripts/build-release.sh`
 
@@ -371,7 +395,7 @@ Deploy assets live in `deploy/`:
 | `release.yml`    | Tag `v*.*.*`                 | Validate version, build tarball, GitHub Release |
 | `deploy-vps.yml` | Manual (`workflow_dispatch`) | Deploy to production VPS                        |
 
-All workflows use Node.js 24 and `npm ci`.
+CI and Release use Node.js 24 and `npm ci`. Deploy VPS downloads an existing release and runs the remote update steps over SSH; it requires the configured `production` environment and VPS secrets. A push to `main` runs CI, not a deployment.
 
 ---
 
