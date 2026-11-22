@@ -96,11 +96,16 @@ describe("processOutboxBatchOnce", () => {
       }
     });
 
-    const { processOutboxBatchOnce, OUTBOX_STALE_PROCESSING_MS } = await import("./outbox-worker.js");
+    const { processOutboxBatchOnce, OUTBOX_STALE_PROCESSING_MS } =
+      await import("./outbox-worker.js");
     await processOutboxBatchOnce(1);
 
     expect(withTransaction).toHaveBeenCalledTimes(2);
-    expect(claimPendingBatch).toHaveBeenCalledWith(1, expect.anything(), OUTBOX_STALE_PROCESSING_MS);
+    expect(claimPendingBatch).toHaveBeenCalledWith(
+      1,
+      expect.anything(),
+      OUTBOX_STALE_PROCESSING_MS,
+    );
     expect(sendToErp).toHaveBeenCalledOnce();
     expect(erpCallsWhileTransactionOpen).toBe(0);
     expect(createSyncAttempt).toHaveBeenCalledWith(
@@ -112,6 +117,10 @@ describe("processOutboxBatchOnce", () => {
       expect.anything(),
     );
     expect(markProcessed).toHaveBeenCalledWith(message.id, expect.anything());
-    expect(updateStatus).toHaveBeenCalledWith(message.aggregateId, OrderStatus.SYNCED, expect.anything());
+    expect(updateStatus).toHaveBeenCalledWith(
+      message.aggregateId,
+      OrderStatus.SYNCED,
+      expect.anything(),
+    );
   });
 });
