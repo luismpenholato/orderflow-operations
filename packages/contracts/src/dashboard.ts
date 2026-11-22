@@ -38,6 +38,7 @@ export type ReadyResponse = z.infer<typeof readyResponseSchema>;
 
 export const CANCELLABLE_STATUSES: OrderStatus[] = [
   OrderStatus.RESERVED,
+  OrderStatus.PENDING_STOCK,
   OrderStatus.SYNC_PENDING,
   OrderStatus.SYNC_FAILED,
 ];

@@ -76,7 +76,7 @@ Source: `CreateOrderUseCase` in `apps/api/src/modules/orders/application/create-
 When a manager cancels an order:
 
 1. Order row is locked (`FOR UPDATE`)
-2. Status must be cancellable: `RESERVED`, `SYNC_PENDING`, or `SYNC_FAILED`
+2. Status must be cancellable: `RESERVED`, `PENDING_STOCK`, `SYNC_PENDING`, or `SYNC_FAILED`
 3. Active reservations are released (decrement `reserved_quantity`, set `released_at`)
 4. Order status → `CANCELLED`
 5. If previous status was not `PENDING_STOCK`, an `ORDER_CANCELLED` outbox message is created
