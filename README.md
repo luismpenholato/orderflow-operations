@@ -28,13 +28,13 @@ Start with [Project Status](#project-status) for limitations. Detailed guides co
 
 ## Portfolio series
 
-| Repository | Focus |
-| ---------- | ----- |
-| [Microservices.Ecommerce](https://github.com/luismpenholato/Microservices.Ecommerce) | .NET microservices e-commerce + observability |
-| [EventDriven.OrderProcessing.RabbitMQ](https://github.com/luismpenholato/EventDriven.OrderProcessing.RabbitMQ) | .NET event-driven order workers (RabbitMQ) |
-| [EventStreaming.Analytics.Kafka](https://github.com/luismpenholato/EventStreaming.Analytics.Kafka) | .NET Kafka analytics + CQRS read models |
-| **This repo** | Node/React modular monolith (inventory + ERP outbox) |
-| [clean-stack](https://github.com/luismpenholato/clean-stack) | Full-stack starter (.NET 10 + Angular / React) |
+| Repository                                                                                                     | Focus                                                |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| [Microservices.Ecommerce](https://github.com/luismpenholato/Microservices.Ecommerce)                           | .NET microservices e-commerce + observability        |
+| [EventDriven.OrderProcessing.RabbitMQ](https://github.com/luismpenholato/EventDriven.OrderProcessing.RabbitMQ) | .NET event-driven order workers (RabbitMQ)           |
+| [EventStreaming.Analytics.Kafka](https://github.com/luismpenholato/EventStreaming.Analytics.Kafka)             | .NET Kafka analytics + CQRS read models              |
+| **This repo**                                                                                                  | Node/React modular monolith (inventory + ERP outbox) |
+| [clean-stack](https://github.com/luismpenholato/clean-stack)                                                   | Full-stack starter (.NET 10 + Angular / React)       |
 
 ---
 
@@ -63,7 +63,7 @@ Known limitations at v0.1.0:
 - JWT stored in HTTP-only cookies without refresh-token rotation
 - ERP integration targets a local mock service, not a real ERP
 - No observability stack (metrics, tracing, alerting)
-- Integration tests require Docker (Testcontainers) for PostgreSQL
+- Integration tests exist under `tests/integration/` and require Docker (Testcontainers) for PostgreSQL
 
 ---
 
