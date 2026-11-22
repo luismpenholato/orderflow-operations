@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-luismpenholato-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/luismpenholato)
 
-Production-like commercial operations MVP for order management, inventory reservation, and ERP synchronization — built as a learning and portfolio project.
+Reference MVP for order management, inventory reservation, and ERP synchronization (outbox) — built as a learning and portfolio project, not a production product.
 
 ---
 
