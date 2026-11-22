@@ -12,9 +12,29 @@ Reference MVP for order management, inventory reservation, and ERP synchronizati
 
 ## Table of Contents
 
-[Quick start](#quick-start) · [Features](#features) · [Architecture](#architecture-overview) · [Configuration](#configuration) · [API](#api-overview) · [Testing](#testing) · [Deployment](#deployment)
+[Quick start](#quick-start) · [What you'll learn](#what-youll-learn) · [Portfolio series](#portfolio-series) · [Features](#features) · [Architecture](#architecture-overview) · [API](#api-overview) · [Testing](#testing)
 
 Start with [Project Status](#project-status) for limitations. Detailed guides cover [inventory reservations](docs/inventory-reservation.md), [ERP synchronization](docs/erp-synchronization.md), and [architecture decisions](docs/decisions/).
+
+---
+
+## What you'll learn
+
+- Modular monolith boundaries inside one Express API
+- Transactional inventory reservation (including kits)
+- Outbox pattern for reliable ERP synchronization
+- Cookie/JWT auth with role-based access in a React SPA
+- Integration tests with Testcontainers
+
+## Portfolio series
+
+| Repository | Focus |
+| ---------- | ----- |
+| [Microservices.Ecommerce](https://github.com/luismpenholato/Microservices.Ecommerce) | .NET microservices e-commerce + observability |
+| [EventDriven.OrderProcessing.RabbitMQ](https://github.com/luismpenholato/EventDriven.OrderProcessing.RabbitMQ) | .NET event-driven order workers (RabbitMQ) |
+| [EventStreaming.Analytics.Kafka](https://github.com/luismpenholato/EventStreaming.Analytics.Kafka) | .NET Kafka analytics + CQRS read models |
+| **This repo** | Node/React modular monolith (inventory + ERP outbox) |
+| [clean-stack](https://github.com/luismpenholato/clean-stack) | Full-stack starter (.NET 10 + Angular / React) |
 
 ---
 
