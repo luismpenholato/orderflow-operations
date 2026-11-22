@@ -8,6 +8,9 @@ import { SyncAttemptRepository } from "../modules/integrations/infrastructure/sy
 import { OrderRepository } from "../modules/orders/infrastructure/order.repository.js";
 import { sendToErp } from "./erp-client.js";
 
+/** Stale PROCESSING rows older than this are reclaimable after a crash mid-HTTP. */
+export const OUTBOX_STALE_PROCESSING_MS = 5 * 60 * 1000;
+
 export class OutboxWorker {
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
@@ -53,20 +56,23 @@ export class OutboxWorker {
   }
 }
 
+/**
+ * Claims a batch in a short DB transaction, then performs ERP HTTP calls outside
+ * any open transaction so locks are not held during network I/O.
+ */
 export async function processOutboxBatchOnce(batchSize = config.outboxBatchSize): Promise<void> {
-  await withTransaction(async (client) => {
+  const messages = await withTransaction(async (client) => {
     const outboxRepo = new OutboxRepository();
-    const messages = await outboxRepo.claimPendingBatch(batchSize, client);
-
-    for (const message of messages) {
-      await processOutboxMessage(message, client);
-    }
+    return outboxRepo.claimPendingBatch(batchSize, client, OUTBOX_STALE_PROCESSING_MS);
   });
+
+  for (const message of messages) {
+    await processOutboxMessage(message);
+  }
 }
 
 async function processOutboxMessage(
   message: Awaited<ReturnType<OutboxRepository["claimPendingBatch"]>>[number],
-  client: DbClient,
 ): Promise<void> {
   const syncAttemptRepo = new SyncAttemptRepository();
   const orderRepo = new OrderRepository();
@@ -81,54 +87,57 @@ async function processOutboxMessage(
     attemptNumber,
   });
 
+  // Network I/O intentionally outside the claim/mark transactions.
   const result = await sendToErp(message.payload, idempotencyKey, message.correlationId);
 
-  await syncAttemptRepo.create(
-    {
-      outboxMessageId: message.id,
-      attemptNumber,
-      status: result.success ? SyncAttemptStatus.SUCCESS : SyncAttemptStatus.FAILURE,
-      httpStatus: result.httpStatus || null,
-      errorMessage: result.errorMessage ?? null,
-      idempotencyKey,
-    },
-    client,
-  );
-
-  if (result.success) {
-    await outboxRepo.markProcessed(message.id, client);
-
-    if (message.eventType === IntegrationEventType.ORDER_CREATED) {
-      await orderRepo.updateStatus(message.aggregateId, OrderStatus.SYNCED, client);
-    }
-
-    logger.info("Outbox message processed successfully", {
-      outboxId: message.id,
-      correlationId: message.correlationId,
-    });
-  } else {
-    await outboxRepo.markFailed(
-      message.id,
-      result.errorMessage ?? "ERP sync failed",
-      attemptNumber,
-      message.maxRetries,
+  await withTransaction(async (client: DbClient) => {
+    await syncAttemptRepo.create(
+      {
+        outboxMessageId: message.id,
+        attemptNumber,
+        status: result.success ? SyncAttemptStatus.SUCCESS : SyncAttemptStatus.FAILURE,
+        httpStatus: result.httpStatus || null,
+        errorMessage: result.errorMessage ?? null,
+        idempotencyKey,
+      },
       client,
     );
 
-    if (message.eventType === IntegrationEventType.ORDER_CREATED) {
-      const newRetryCount = attemptNumber;
-      if (newRetryCount >= message.maxRetries) {
-        await orderRepo.updateStatus(message.aggregateId, OrderStatus.SYNC_FAILED, client);
-      }
-    }
+    if (result.success) {
+      await outboxRepo.markProcessed(message.id, client);
 
-    logger.warn("Outbox message processing failed", {
-      outboxId: message.id,
-      correlationId: message.correlationId,
-      attemptNumber,
-      error: result.errorMessage,
-    });
-  }
+      if (message.eventType === IntegrationEventType.ORDER_CREATED) {
+        await orderRepo.updateStatus(message.aggregateId, OrderStatus.SYNCED, client);
+      }
+
+      logger.info("Outbox message processed successfully", {
+        outboxId: message.id,
+        correlationId: message.correlationId,
+      });
+    } else {
+      await outboxRepo.markFailed(
+        message.id,
+        result.errorMessage ?? "ERP sync failed",
+        attemptNumber,
+        message.maxRetries,
+        client,
+      );
+
+      if (message.eventType === IntegrationEventType.ORDER_CREATED) {
+        const newRetryCount = attemptNumber;
+        if (newRetryCount >= message.maxRetries) {
+          await orderRepo.updateStatus(message.aggregateId, OrderStatus.SYNC_FAILED, client);
+        }
+      }
+
+      logger.warn("Outbox message processing failed", {
+        outboxId: message.id,
+        correlationId: message.correlationId,
+        attemptNumber,
+        error: result.errorMessage,
+      });
+    }
+  });
 }
 
 let workerInstance: OutboxWorker | null = null;

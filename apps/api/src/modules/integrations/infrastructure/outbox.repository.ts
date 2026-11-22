@@ -119,15 +119,27 @@ export class OutboxRepository {
     return rows[0]!;
   }
 
-  async claimPendingBatch(batchSize: number, client: DbClient): Promise<OutboxMessageRow[]> {
+  async claimPendingBatch(
+    batchSize: number,
+    client: DbClient,
+    staleProcessingMs = 5 * 60 * 1000,
+  ): Promise<OutboxMessageRow[]> {
     const { rows } = await client.query<OutboxMessageRow>(
       `UPDATE outbox_messages
        SET status = 'PROCESSING', updated_at = NOW() AT TIME ZONE 'UTC'
        WHERE id IN (
          SELECT id FROM outbox_messages
-         WHERE status IN ('PENDING', 'FAILED')
-           AND (next_retry_at IS NULL OR next_retry_at <= NOW() AT TIME ZONE 'UTC')
-           AND retry_count < max_retries
+         WHERE retry_count < max_retries
+           AND (
+             (
+               status IN ('PENDING', 'FAILED')
+               AND (next_retry_at IS NULL OR next_retry_at <= NOW() AT TIME ZONE 'UTC')
+             )
+             OR (
+               status = 'PROCESSING'
+               AND updated_at <= (NOW() AT TIME ZONE 'UTC') - ($2 * INTERVAL '1 millisecond')
+             )
+           )
          ORDER BY created_at ASC
          LIMIT $1
          FOR UPDATE SKIP LOCKED
@@ -137,7 +149,7 @@ export class OutboxRepository {
                  status, retry_count AS "retryCount", max_retries AS "maxRetries",
                  last_error AS "lastError", next_retry_at AS "nextRetryAt",
                  processed_at AS "processedAt", created_at AS "createdAt", updated_at AS "updatedAt"`,
-      [batchSize],
+      [batchSize, staleProcessingMs],
     );
     return rows;
   }
