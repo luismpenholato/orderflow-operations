@@ -17,7 +17,8 @@ describe("order-status", () => {
   it("identifies cancellable statuses", () => {
     expect(isCancellable(OrderStatus.SYNC_PENDING)).toBe(true);
     expect(isCancellable(OrderStatus.SYNC_FAILED)).toBe(true);
-    expect(isCancellable(OrderStatus.PENDING_STOCK)).toBe(false);
+    expect(isCancellable(OrderStatus.PENDING_STOCK)).toBe(true);
+    expect(isCancellable(OrderStatus.RESERVED)).toBe(true);
     expect(isCancellable(OrderStatus.CANCELLED)).toBe(false);
   });
 });
